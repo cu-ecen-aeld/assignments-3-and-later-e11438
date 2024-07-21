@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 	if(argc < 2)
 	{
 		printf("Please enter atleast 2 args\n");
-		return 0;
+		return 1;
 	}
 	char * fileName = NULL;
 	char * content = NULL;
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 	{
 
 		syslog(LOG_DEBUG, "Error opening file %s, %d", fileName, errno);
-		return 0;	
+		return 1;	
 	}
 
 	syslog(LOG_DEBUG, "Writing %s to %s", content, fileName);
