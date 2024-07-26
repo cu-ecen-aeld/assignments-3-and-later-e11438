@@ -16,6 +16,9 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+	int out = system(cmd);
+	if(out < 0)
+		return false;
 
     return true;
 }
@@ -47,7 +50,8 @@ bool do_exec(int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    //command[count] = command[count];
+    //char ** argArray = &command[1];
 
 /*
  * TODO:
@@ -58,10 +62,31 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
-
-    va_end(args);
-
-    return true;
+    fflush(stdout);
+    pid_t p = fork();
+    if(p < 0)
+    {
+	    printf("Fork for %s failed\n", command[0]);
+	    return false;
+    }
+    else if(p == 0)
+    {
+	//child process
+	execv(command[0], &command[0]);
+        perror("execv() failed");
+        exit(EXIT_FAILURE);
+	
+    }
+    else
+    {
+	//parent process
+	int status;
+        if (waitpid(p, &status, 0) != p) {
+            perror("waitpid failed");
+            return false;
+        }
+	return WEXITSTATUS(status) == 0;
+    }
 }
 
 /**
@@ -82,7 +107,6 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
 
 
 /*
@@ -92,8 +116,36 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if (fd < 0) { perror("open failed"); abort(); }
+    if (dup2(fd, 1) < 0) {
+        perror("dup2 failed");
+    }
+    close(fd);
 
-    va_end(args);
-
-    return true;
+    fflush(stdout);
+    pid_t p = fork();
+    if(p < 0)
+    {
+	    printf("Fork for %s failed\n", command[0]);
+	    return false;
+    }
+    else if(p == 0)
+    {
+	//child process
+	execv(command[0], &command[0]);
+        perror("execv() failed");
+        exit(EXIT_FAILURE);
+	
+    }
+    else
+    {
+	//parent process
+	int status;
+        if (waitpid(p, &status, 0) != p) {
+            perror("waitpid failed");
+            return false;
+        }
+	return WEXITSTATUS(status) == 0;
+    }
 }
