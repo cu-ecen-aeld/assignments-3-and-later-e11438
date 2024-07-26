@@ -73,7 +73,7 @@ bool do_exec(int count, ...)
     {
 	//child process
 	execv(command[0], &command[0]);
-        perror("execv() failed");
+        //perror("execv() failed");
         exit(EXIT_FAILURE);
 	
     }
@@ -85,6 +85,7 @@ bool do_exec(int count, ...)
             perror("waitpid failed");
             return false;
         }
+	va_end(args);
 	return WEXITSTATUS(status) == 0;
     }
 }
@@ -134,7 +135,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     {
 	//child process
 	execv(command[0], &command[0]);
-        perror("execv() failed");
+        //perror("execv() failed");
         exit(EXIT_FAILURE);
 	
     }
@@ -146,6 +147,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
             perror("waitpid failed");
             return false;
         }
+	va_end(args);
 	return WEXITSTATUS(status) == 0;
     }
 }
