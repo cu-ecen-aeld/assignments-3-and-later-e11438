@@ -63,31 +63,33 @@ bool do_exec(int count, ...)
  *
 */
     fflush(stdout);
-    pid_t p = fork();
-    if(p < 0)
+    va_end(args);
+
+    pid_t pid = fork();
+    if(pid == -1)
     {
-	    printf("Fork for %s failed\n", command[0]);
-	    return false;
+        perror("fork");
+        return false;
     }
-    else if(p == 0)
+    if(pid == 0) // child
     {
-	//child process
-	execv(command[0], &command[0]);
-        //perror("execv() failed");
-        exit(EXIT_FAILURE);
-	
+        execv(command[0], &command[0]);
+        exit(-1);
     }
-    else
+    else // parent
     {
-	//parent process
-	int status;
-        if (waitpid(p, &status, 0) != p) {
-            perror("waitpid failed");
-            return false;
+        int status;
+        waitpid(pid, &status, 0);
+        if(WIFEXITED(status))
+        {
+            if(WEXITSTATUS(status))
+            {
+                return false;
+            }
         }
-	va_end(args);
-	return WEXITSTATUS(status) == 0;
     }
+
+    return true;
 }
 
 /**
@@ -135,7 +137,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     {
 	//child process
 	execv(command[0], &command[0]);
-        //perror("execv() failed");
+        perror("execv() failed");
         exit(EXIT_FAILURE);
 	
     }
