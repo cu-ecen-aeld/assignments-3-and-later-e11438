@@ -63,33 +63,31 @@ bool do_exec(int count, ...)
  *
 */
     fflush(stdout);
-    va_end(args);
-
-    pid_t pid = fork();
-    if(pid == -1)
+    pid_t p = fork();
+    if(p < 0)
     {
-        perror("fork");
-        return false;
+	    printf("Fork for %s failed\n", command[0]);
+	    return false;
     }
-    if(pid == 0) // child
+    else if(p == 0)
     {
-        execv(command[0], &command[0]);
-        exit(-1);
+	//child process
+	execv(command[0], &command[0]);
+        perror("execv() failed");
+        exit(EXIT_FAILURE);
+	
     }
-    else // parent
+    else
     {
-        int status;
-        waitpid(pid, &status, 0);
-        if(WIFEXITED(status))
-        {
-            if(WEXITSTATUS(status))
-            {
-                return false;
-            }
+	//parent process
+	int status;
+        if (waitpid(p, &status, 0) != p) {
+            perror("waitpid failed");
+            return false;
         }
+	va_end(args);
+	return WEXITSTATUS(status) == 0;
     }
-
-    return true;
 }
 
 /**
