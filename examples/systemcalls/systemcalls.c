@@ -69,11 +69,13 @@ bool do_exec(int count, ...)
 	    printf("Fork for %s failed\n", command[0]);
 	    return false;
     }
-    else if(p == 0)
+
+    if(p == 0)
     {
 	//child process
 	execv(command[0], &command[0]);
         perror("execv() failed");
+	printf("exit ...........3 \n");
         exit(EXIT_FAILURE);
 	
     }
@@ -86,8 +88,10 @@ bool do_exec(int count, ...)
             return false;
         }
 	va_end(args);
+	printf("exit ...........1 \n");
 	return WEXITSTATUS(status) == 0;
     }
+	printf("exit ...........2 \n");
 }
 
 /**
