@@ -50,8 +50,7 @@ bool do_exec(int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    //command[count] = command[count];
-    //char ** argArray = &command[1];
+    command[count] = command[count];
 
 /*
  * TODO:
@@ -62,36 +61,40 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
-    fflush(stdout);
-    pid_t p = fork();
-    if(p < 0)
-    {
-	    printf("Fork for %s failed\n", command[0]);
-	    return false;
+fflush(stdout);
+ pid_t pid = fork();
+
+    if (pid == -1) {
+        // Fork failed
+        perror("Fork failed");
+        return 0;
+    } else if (pid == 0) {
+        // Child process
+        execv(command[0], command);
+        perror("Execv failed");
+        exit(1);
+    } else {
+        // Parent process
+        int status;
+        wait(&status);
+
+        if (WIFEXITED(status)) {
+            int exitStatus = WEXITSTATUS(status);
+            if (exitStatus != 0) {
+                printf("Command execution failed with exit status: %d\n", exitStatus);
+                return 0;
+            }
+        } else if (WIFSIGNALED(status)) {
+            int signalNumber = WTERMSIG(status);
+            printf("Command execution terminated by signal: %d\n", signalNumber);
+            return 0;
+        }
     }
 
-    if(p == 0)
-    {
-	//child process
-	execv(command[0], &command[0]);
-        perror("execv() failed");
-	printf("exit ...........3 \n");
-        exit(EXIT_FAILURE);
-	
-    }
-    else
-    {
-	//parent process
-	int status;
-        if (waitpid(p, &status, 0) != p) {
-            perror("waitpid failed");
-            return false;
-        }
-	va_end(args);
-	printf("exit ...........1 \n");
-	return WEXITSTATUS(status) == 0;
-    }
-	printf("exit ...........2 \n");
+    return 1;
+    va_end(args);
+
+    return true;
 }
 
 /**
@@ -112,6 +115,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
+    command[count] = command[count];
 
 
 /*
@@ -121,37 +125,31 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
-    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
-    if (fd < 0) { perror("open failed"); abort(); }
-    if (dup2(fd, 1) < 0) {
-        perror("dup2 failed");
-    }
+int kidpid;
+int status;
+int fd = open("testfile.txt", O_WRONLY|O_TRUNC|O_CREAT, 0644);
+if (fd < 0) { perror("open"); abort(); }
+fflush(stdout);
+switch (kidpid = fork()) {
+  case -1: perror("fork"); abort();
+  case 0:
+    if (dup2(fd, 1) < 0) { perror("dup2"); abort(); }
     close(fd);
-
-    fflush(stdout);
-    pid_t p = fork();
-    if(p < 0)
-    {
-	    printf("Fork for %s failed\n", command[0]);
-	    return false;
-    }
-    else if(p == 0)
-    {
-	//child process
-	execv(command[0], &command[0]);
-        perror("execv() failed");
-        exit(EXIT_FAILURE);
-	
-    }
-    else
-    {
-	//parent process
-	int status;
-        if (waitpid(p, &status, 0) != p) {
-            perror("waitpid failed");
-            return false;
+    execv(command[0], command); perror("execvp"); abort();
+  default:
+   // Parent process
+        
+        wait(&status);
+        if (WIFEXITED(status)) {
+            printf("Child process exited with status: %d\n", WEXITSTATUS(status));
+        } else {
+            printf("Child process exited abnormally\n");
         }
-	va_end(args);
-	return WEXITSTATUS(status) == 0;
-    }
+        }
+    close(fd);
+    /* do whatever the parent wants to do. */
+
+    va_end(args);
+
+    return true;
 }
